@@ -39,34 +39,36 @@ if __name__ == '__main__':
     mode = 'min' if 'loss' in args.monitor else 'max'
     assert args.kfolds >= len(args.folds)
 
-    model = Model(
-        arch='mobilenetv3_large_100_miil',
-        n_classes=10, # TODO: define
-        lr=args.lr,
-        lr_factor=args.lr_factor,
-        lr_patience=args.lr_patience,
-        monitor=args.monitor,
-        mode=mode,
-        pretrained=not args.from_scratch,
+    # TODO: Add kfold
+    for i, (x, y) in range(10):
 
-        # to be saved in hparams
-        img_size=args.img_size
-    )
+        model = Model(
+            arch='mobilenetv3_large_100_miil',
+            n_classes=10, # TODO: define
+            lr=args.lr,
+            lr_factor=args.lr_factor,
+            lr_patience=args.lr_patience,
+            monitor=args.monitor,
+            mode=mode,
+            pretrained=not args.from_scratch,
 
-    trainer = pl.Trainer(
-        accumulate_grad_batches=args.accumulate_grad_batches,
-        gpus=args.gpus,
-        benchmark=True,
-        precision=16,
-        callbacks=[
-            # pl.callbacks.ProgressBar(),
-            pl.callbacks.EarlyStopping(monitor=args.monitor, patience=args.patience, mode=mode),
-            pl.callbacks.ModelCheckpoint(
-                monitor=args.monitor,
-                mode=mode,
-                filename=f'{args.arch}_fold_{args.fold}_of_{args.nfolds}_' + '{epoch}_{args.monitor:.3f}'),
-        ],
-    )
+            # to be saved in hparams
+            img_size=args.img_size
+        )
 
+        trainer = pl.Trainer(
+            accumulate_grad_batches=args.accumulate_grad_batches,
+            gpus=args.gpus,
+            benchmark=True,
+            precision=16,
+            callbacks=[
+                # pl.callbacks.ProgressBar(),
+                pl.callbacks.EarlyStopping(monitor=args.monitor, patience=args.patience, mode=mode),
+                pl.callbacks.ModelCheckpoint(
+                    monitor=args.monitor,
+                    mode=mode,
+                    filename=f'{args.arch}_fold_{args.fold}_of_{args.nfolds}_' + '{epoch}_{args.monitor:.3f}'),
+            ],
+        )
 
-    print(model)
+        print(model)
