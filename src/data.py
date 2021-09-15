@@ -20,7 +20,7 @@ class Dataset(torch.utils.data.Dataset):
         label = None
 
         img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-        
+
         if self.transforms is not None:
             img = self.transforms(image=img)['image']
 
@@ -29,7 +29,7 @@ class Dataset(torch.utils.data.Dataset):
 
 def get_aug_transforms(img_size):
     return [
-        # 
+        #
         A.Normalize(),
         ToTensorV2()
     ]
@@ -37,7 +37,7 @@ def get_aug_transforms(img_size):
 
 def get_basic_transforms(img_size):
     return [
-        ## 
+        ##
         A.Resize(img_size, img_size),
         A.Normalize(),
         ToTensorV2()
@@ -46,12 +46,12 @@ def get_basic_transforms(img_size):
 
 class DataModule(pl.LightningDataModule):
 
-    def __init__(self, 
-                 train_df, 
-                 val_df, 
-                 test_df, 
-                 batch_size, 
-                 img_size, 
+    def __init__(self,
+                 train_df,
+                 val_df,
+                 test_df,
+                 batch_size,
+                 img_size,
                  tta=1,
                  num_workers=8):
         super().__init__()
@@ -74,11 +74,11 @@ class DataModule(pl.LightningDataModule):
         self.train_ds = Dataset(df=self.train_df, transforms=train_T)
         self.val_ds = Dataset(df=self.val_df, transforms=val_T)
         self.test_ds = Dataset(df=self.test_df, transforms=val_T)
-    
+
     def train_dataloader(self):
         return torch.utils.data.DataLoader(
-            dataset=self.train_ds, 
-            batch_size=self.batch_size, 
+            dataset=self.train_ds,
+            batch_size=self.batch_size,
             num_workers=self.num_workers,
             drop_last=True,
             shuffle=True
@@ -86,14 +86,14 @@ class DataModule(pl.LightningDataModule):
 
     def val_dataloader(self):
         return torch.utils.data.DataLoader(
-            dataset=self.val_ds, 
-            batch_size=self.batch_size, 
+            dataset=self.val_ds,
+            batch_size=self.batch_size,
             num_workers=self.num_workers,
         )
 
     def test_dataloader(self):
         return torch.utils.data.DataLoader(
-            dataset=self.test_ds, 
-            batch_size=self.batch_size, 
+            dataset=self.test_ds,
+            batch_size=self.batch_size,
             num_workers=self.num_workers,
         )
