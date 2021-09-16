@@ -10,8 +10,8 @@ def get_parser():
     parser = ArgumentParser()
     h = '%(type)s (default: %(default)s)'
 
-    parser.add_argument('--in-img-dir', default='data/classification/images_big', help=h)
-    parser.add_argument('--out-img-dir', default='data/classification/images', help=h)
+    parser.add_argument('--in-img-dir', default='data/images_big', help=h)
+    parser.add_argument('--out-img-dir', default='data/images', help=h)
 
     parser.add_argument('--max-img-size', default=1024, type=int, help=h)
 

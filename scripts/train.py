@@ -10,8 +10,8 @@ def get_parser():
     parser = ArgumentParser()
     h = '%(type)s (default: %(default)s)'
 
-    parser.add_argument('--img-dir', default='data/classification/images', help=h)
-    parser.add_argument('--labels-path', default='data/classification/labels.json', help=h)
+    parser.add_argument('--img-dir', default='data/images', help=h)
+    parser.add_argument('--labels-path', default='data/labels.json', help=h)
 
     parser.add_argument('--accumulate-grad-batches', default=8, type=int, help=h)
     parser.add_argument('--batch-size', default=8, type=int, help=h)
@@ -51,6 +51,7 @@ if __name__ == '__main__':
             print('Passing')
             continue
 
+        # TODO: Add classes and weights
         model = Model(
             arch='mobilenetv3_large_100_miil',
             n_classes=10, # TODO: define
