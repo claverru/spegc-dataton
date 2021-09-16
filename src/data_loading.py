@@ -1,5 +1,6 @@
 import cv2
 import torch
+import numpy as np
 import albumentations as A
 import pytorch_lightning as pl
 from albumentations.pytorch import ToTensorV2
@@ -80,6 +81,7 @@ class DataModule(pl.LightningDataModule):
             dataset=self.train_ds,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
+            worker_init_fn=lambda wid: np.random.seed(np.random.get_state()[1][0] + wid),
             drop_last=True,
             shuffle=True
         )
@@ -89,6 +91,7 @@ class DataModule(pl.LightningDataModule):
             dataset=self.val_ds,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
+            worker_init_fn=lambda wid: np.random.seed(np.random.get_state()[1][0] + wid),
         )
 
     def test_dataloader(self):
@@ -96,4 +99,5 @@ class DataModule(pl.LightningDataModule):
             dataset=self.test_ds,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
+            worker_init_fn=lambda wid: np.random.seed(np.random.get_state()[1][0] + wid),
         )

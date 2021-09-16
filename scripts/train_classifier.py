@@ -8,25 +8,25 @@ from src.model import Model
 
 def get_parser():
     parser = ArgumentParser()
-    # TODO: Add help
+    h = '%(type)s (default: %(default)s)'
 
-    parser.add_argument('--img-dir', default='data/classification/images')
-    parser.add_argument('--labels-path', default='data/classification/labels.json')
+    parser.add_argument('--img-dir', default='data/classification/images', help=h)
+    parser.add_argument('--labels-path', default='data/classification/labels.json', help=h)
 
-    parser.add_argument('--accumulate-grad-batches', default=8, type=int)
-    parser.add_argument('--batch-size', default=8, type=int)
-    parser.add_argument('--img-size', default=512, type=int)
-    parser.add_argument('--arch', default='mobilenetv3_large_100_miil')
+    parser.add_argument('--accumulate-grad-batches', default=8, type=int, help=h)
+    parser.add_argument('--batch-size', default=8, type=int, help=h)
+    parser.add_argument('--img-size', default=512, type=int, help=h)
+    parser.add_argument('--arch', default='mobilenetv3_large_100_miil', help=h)
 
-    parser.add_argument('--folds-to-train', nargs='+', default=[0, 1, 2, 3, 4])
-    parser.add_argument('--kfolds', default=5, type=int)
-    parser.add_argument('--kfold-seed', default=0, type=int)
+    parser.add_argument('--folds-to-train', nargs='+', default=[0, 1, 2, 3, 4], help=h)
+    parser.add_argument('--kfolds', default=5, type=int, help=h)
+    parser.add_argument('--kfold-seed', default=0, type=int, help=h)
 
-    parser.add_argument('--lr', default=1e-4, type=float)
-    parser.add_argument('--lr-factor', default=0.5, type=float)
-    parser.add_argument('--lr-patience', default=1, type=int)
-    parser.add_argument('--monitor', default='val_loss', type=str)
-    parser.add_argument('--from-scratch', action='store_true')
+    parser.add_argument('--lr', default=1e-4, type=float, help=h)
+    parser.add_argument('--lr-factor', default=0.5, type=float, help=h)
+    parser.add_argument('--lr-patience', default=1, type=int, help=h)
+    parser.add_argument('--monitor', default='val_loss', type=str, help=h)
+    parser.add_argument('--from-scratch', action='store_true', help=h)
 
     parser.add_argument('--gpus', default=1)
 
