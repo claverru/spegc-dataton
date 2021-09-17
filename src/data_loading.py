@@ -18,31 +18,32 @@ class Dataset(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         image_path = self.image_paths[index]
-        label = None
+        sea_floor_label = None
+        elements_label = None
 
         img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 
         if self.transforms is not None:
             img = self.transforms(image=img)['image']
 
-        return img, label
+        return img, {'sea_floor': sea_floor_label, 'elements': elements_label}
 
 
-def get_aug_transforms(img_size):
-    return [
+def get_aug_transforms(img_size, grayscale):
+    return A.Compose([
         #
         A.Normalize(),
         ToTensorV2()
-    ]
+    ])
 
 
-def get_basic_transforms(img_size):
-    return [
+def get_basic_transforms(img_size, grayscale):
+    return A.Compose([
         ##
         A.Resize(img_size, img_size),
         A.Normalize(),
         ToTensorV2()
-    ]
+    ])
 
 
 class DataModule(pl.LightningDataModule):
@@ -53,6 +54,7 @@ class DataModule(pl.LightningDataModule):
                  test_df,
                  batch_size,
                  img_size,
+                 grayscale,
                  tta=1,
                  num_workers=8):
         super().__init__()
@@ -61,20 +63,22 @@ class DataModule(pl.LightningDataModule):
         self.test_df = test_df
         self.batch_size = batch_size
         self.img_size = img_size
+        self.grayscale = grayscale
         self.tta = tta
         self.num_workers = num_workers
 
     def setup(self, stage=None):
 
         train_T = get_aug_transforms(self.img_size)
-        val_T = get_basic_transforms(self.img_size)
-
-        train_T = A.Compose(train_T)
-        val_T = A.Compose(val_T)
+        if self.tta > 1:
+            val_T = get_aug_transforms(self.img_size, self.grayscale)
+        else:
+            val_T = get_basic_transforms(self.img_size, self.grayscale)
+        test_T = get_basic_transforms(self.img_size, self.grayscale)
 
         self.train_ds = Dataset(df=self.train_df, transforms=train_T)
         self.val_ds = Dataset(df=self.val_df, transforms=val_T)
-        self.test_ds = Dataset(df=self.test_df, transforms=val_T)
+        self.test_ds = Dataset(df=self.test_df, transforms=test_T)
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(

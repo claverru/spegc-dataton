@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 
 import pytorch_lightning as pl
-from sklearn.model_selection import StratifiedKFold
+from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 
 from src.model import Model
 
@@ -16,6 +16,8 @@ def get_parser():
     parser.add_argument('--accumulate-grad-batches', default=8, type=int, help=h)
     parser.add_argument('--batch-size', default=8, type=int, help=h)
     parser.add_argument('--img-size', default=512, type=int, help=h)
+    parser.add_argument('--grayscale', action='store_true', help=h)
+
     parser.add_argument('--arch', default='mobilenetv3_large_100_miil', help=h)
 
     parser.add_argument('--folds-to-train', nargs='+', default=[0, 1, 2, 3, 4], help=h)
@@ -41,10 +43,20 @@ if __name__ == '__main__':
     assert args.kfolds >= len(args.folds_to_train)
 
     X = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    y = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2]
+    y = [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 1], [1, 1], [1, 1], [1, 1], [1, 1]]
 
-    sfk = StratifiedKFold(n_splits=args.kfolds, shuffle=True, random_state=args.kfold_seed)
-    for i, (train_index, test_index) in enumerate(sfk.split(X, y)):
+    mskf = MultilabelStratifiedKFold(n_splits=args.kfolds, shuffle=True, random_state=args.kfold_seed)
+    for i, (train_index, test_index) in enumerate(mskf.split(X, y)):
+
+        train_df = None
+        val_df = None
+
+        data_module = DataModule(
+            train_df,
+            val_df,
+            args.batch_size,
+            args.img_size
+        )
 
         print(f'\nTraining {i+1}/{args.kfolds} fold')
         if i not in args.folds_to_train:
