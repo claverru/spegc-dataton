@@ -13,6 +13,7 @@ def get_parser():
     parser = ArgumentParser()
     h = '%(type)s (default: %(default)s)'
     parser.add_argument('--img-dir', default='data', help=h)
+    parser.add_argument('--save-name', default='cache_repeated', help=h)
 
     return parser
 
@@ -71,4 +72,4 @@ if __name__ == '__main__':
 
     dict_repeated = clean_repeated(stats_dict)
 
-    pickle.dump(dict_repeated, open('data/cache_repeated.pickle', 'wb'))
+    pickle.dump(dict_repeated, open(f'data/{args.save_name}.pickle', 'wb'))
