@@ -14,12 +14,5 @@ NAME2ID = {
     }
 }
 
-
-def checkpoint_name(
-    problem,
-    arch,
-    epoch,
-    kfolds,
-    monitor
-):
+def checkpoint_name(problem, arch, epoch, kfolds, monitor):
     return f'{problem}_{arch}_fold_{epoch}_of_{kfolds}_' + '{epoch}_{' + monitor + ':.3f}'
