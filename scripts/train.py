@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 import pytorch_lightning as pl
 from sklearn.model_selection import StratifiedKFold
 
+from src import constants
 from src.model import Model
 from src.data_loading import DataModule, get_data, get_dicts, get_loss_weight
 
@@ -61,6 +62,7 @@ if __name__ == '__main__':
         val_dicts = get_dicts(paths, labels, val_index, args.problem)
 
         data_module = DataModule(
+            args.problem,
             train_dicts,
             val_dicts,
             val_dicts,
@@ -87,9 +89,16 @@ if __name__ == '__main__':
             # to be saved in hparams
             img_size=args.img_size,
             grayscale=args.grayscale,
-            fold=i+1
+            fold=i+1,
+            problem=args.problem
         )
-
+        filename = constants.checkpoint_name(
+            args.problem,
+            args.arch,
+            i+1,
+            args.kfolds,
+            args.monitor
+        )
         trainer = pl.Trainer(
             accumulate_grad_batches=args.accumulate_grad_batches,
             gpus=args.gpus,
@@ -101,7 +110,8 @@ if __name__ == '__main__':
                 pl.callbacks.ModelCheckpoint(
                     monitor=args.monitor,
                     mode=mode,
-                    filename=f'{args.problem}_{args.arch}_fold_{i+1}_of_{args.kfolds}_' + '{epoch}_{args.monitor:.3f}'),
+                    filename=filename
+                    ),
             ],
         )
 

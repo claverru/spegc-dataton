@@ -13,25 +13,32 @@ from src.constants import NAME2ID
 
 class Dataset(torch.utils.data.Dataset):
 
-    def __init__(self, df, transforms=None, tta=1):
+    def __init__(self, problem, dicts, transforms=None, tta=1):
         super().__init__()
-        self.image_paths = df['image_path'].to_numpy()
+        self.problem = problem
+        self.dicts = dicts
         self.transforms = transforms
 
     def __len__(self):
-        return len(self.image_paths)
+        return len(self.dicts)
 
     def __getitem__(self, index):
-        image_path = self.image_paths[index]
-        sea_floor_label = None
-        elements_label = None
+        image_path = self.dicts[index]['image_path']
+        label = self.dicts[index]['label']
+        target = self.get_label_by_problem(label)
 
-        img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        img = cv2.imread(image_path)[:, :, ::-1]
 
         if self.transforms is not None:
             img = self.transforms(image=img)['image']
 
-        return img, {'sea_floor': sea_floor_label, 'elements': elements_label}
+        return img, target
+
+    def get_label_by_problem(self, label):
+        if self.problem == 'sea_floor':
+            return label
+
+
 
 
 def get_aug_transforms(img_size, grayscale):
@@ -61,6 +68,7 @@ def get_basic_transforms(img_size, grayscale):
 class DataModule(pl.LightningDataModule):
 
     def __init__(self,
+                 problem,
                  train_dicts,
                  val_dicts,
                  test_dicts,
@@ -70,6 +78,7 @@ class DataModule(pl.LightningDataModule):
                  tta=1,
                  num_workers=8):
         super().__init__()
+        self.problem = problem
         self.train_dicts = train_dicts
         self.val_dicts = val_dicts
         self.test_dicts = test_dicts
@@ -81,16 +90,16 @@ class DataModule(pl.LightningDataModule):
 
     def setup(self, stage=None):
 
-        train_T = get_aug_transforms(self.img_size)
+        train_T = get_aug_transforms(self.img_size, self.grayscale)
         if self.tta > 1:
             val_T = get_aug_transforms(self.img_size, self.grayscale)
         else:
             val_T = get_basic_transforms(self.img_size, self.grayscale)
         test_T = get_basic_transforms(self.img_size, self.grayscale)
 
-        self.train_ds = Dataset(df=self.train_dicts, name2id=self.name2id, transforms=train_T)
-        self.val_ds = Dataset(df=self.val_dicts, name2id=self.name2id, transforms=val_T)
-        self.test_ds = Dataset(df=self.test_dicts, name2id=self.name2id, transforms=test_T)
+        self.train_ds = Dataset(problem=self.problem, dicts=self.train_dicts, transforms=train_T)
+        self.val_ds = Dataset(problem=self.problem, dicts=self.val_dicts, transforms=val_T)
+        self.test_ds = Dataset(problem=self.problem, dicts=self.test_dicts, transforms=test_T)
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(
@@ -134,6 +143,9 @@ def get_dicts(paths, labels, index, problem):
         'image_path': paths[i],
         'label': NAME2ID[problem][labels[i]]
     } for i in index]
+
+
+
 
 
 def get_loss_weight(labels, problem):

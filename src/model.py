@@ -33,7 +33,6 @@ class Model(pl.LightningModule):
         self.monitor = monitor
         self.mode = mode
 
-
     def forward(self, x):
         return self.model(x)
 
@@ -47,7 +46,7 @@ class Model(pl.LightningModule):
         self.log('train_loss', loss, on_epoch=True, prog_bar=True, on_step=False)
         return loss
 
-    def training_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx):
         x, target = batch
 
         preds = self.forward(x)

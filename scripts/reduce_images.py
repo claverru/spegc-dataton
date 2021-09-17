@@ -33,14 +33,14 @@ if __name__ == '__main__':
 
     global in_dir
     in_dir = Path(args.in_img_dir)
+
     global out_dir
     out_dir = str(Path(args.out_img_dir))
+
     global max_img_size
     max_img_size = args.max_img_size
 
-
     paths = [str(p) for p in in_dir.rglob('*.jpg')]
-    print(paths[0])
 
     with ProcessPoolExecutor() as p:
         list(tqdm(p.map(load_reduce_save_img, paths), total=len(paths)))
