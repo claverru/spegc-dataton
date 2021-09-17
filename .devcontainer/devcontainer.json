@@ -26,7 +26,7 @@
 	// "forwardPorts": [],
 
 	// Uncomment the next line to run commands after the container is created - for example installing curl.
-	"postCreateCommand": "rm -rf yolov5; git clone https://github.com/ultralytics/yolov5",
+	// "postCreateCommand": "rm -rf yolov5; git clone https://github.com/ultralytics/yolov5",
 
 	// Uncomment when using a ptrace-based debugger like C++, Go, and Rust
 	"runArgs": [ "--gpus=all", "--ipc=host" ],

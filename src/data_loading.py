@@ -1,9 +1,13 @@
+from pathlib import Path
+
 import cv2
 import torch
 import numpy as np
 import albumentations as A
 import pytorch_lightning as pl
 from albumentations.pytorch import ToTensorV2
+
+from src.constants import NAME2ID
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -49,18 +53,18 @@ def get_basic_transforms(img_size, grayscale):
 class DataModule(pl.LightningDataModule):
 
     def __init__(self,
-                 train_df,
-                 val_df,
-                 test_df,
+                 train_dicts,
+                 val_dicts,
+                 test_dicts,
                  batch_size,
                  img_size,
                  grayscale,
                  tta=1,
                  num_workers=8):
         super().__init__()
-        self.train_df = train_df
-        self.val_df = val_df
-        self.test_df = test_df
+        self.train_dicts = train_dicts
+        self.val_dicts = val_dicts
+        self.test_dicts = test_dicts
         self.batch_size = batch_size
         self.img_size = img_size
         self.grayscale = grayscale
@@ -76,9 +80,9 @@ class DataModule(pl.LightningDataModule):
             val_T = get_basic_transforms(self.img_size, self.grayscale)
         test_T = get_basic_transforms(self.img_size, self.grayscale)
 
-        self.train_ds = Dataset(df=self.train_df, transforms=train_T)
-        self.val_ds = Dataset(df=self.val_df, transforms=val_T)
-        self.test_ds = Dataset(df=self.test_df, transforms=test_T)
+        self.train_ds = Dataset(df=self.train_dicts, name2id=self.name2id, transforms=train_T)
+        self.val_ds = Dataset(df=self.val_dicts, name2id=self.name2id, transforms=val_T)
+        self.test_ds = Dataset(df=self.test_dicts, name2id=self.name2id, transforms=test_T)
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(
@@ -105,3 +109,35 @@ class DataModule(pl.LightningDataModule):
             num_workers=self.num_workers,
             worker_init_fn=lambda wid: np.random.seed(np.random.get_state()[1][0] + wid),
         )
+
+
+def get_data(img_dir):
+    paths, labels = [], []
+
+    for path in Path(img_dir).rglob('*.jpg'):
+        paths.append(str(path))
+        labels.append(path.parent.name)
+
+    return paths, labels
+
+
+def get_dicts(paths, labels, index, problem):
+    return [{
+        'image_path': paths[i],
+        'label': NAME2ID[problem][labels[i]]
+    } for i in index]
+
+
+def get_loss_weight(labels, problem):
+    counter = {c: 0 for c in NAME2ID[problem]}
+    for label in labels:
+        counter[label] += 1
+
+    counter = {c: len(labels) / counter[c] for c in counter}
+    s = sum(v for v in counter.values())
+    result = [0 for _ in NAME2ID[problem]]
+
+    for c, v in counter.items():
+        result[NAME2ID[problem][c]] = v / s
+
+    return result

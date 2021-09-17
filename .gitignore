@@ -132,5 +132,5 @@ dmypy.json
 lightning_logs
 data
 models
-yolov5
+# yolov5
 trash

@@ -1,10 +1,11 @@
 from argparse import ArgumentParser
 
 import pytorch_lightning as pl
-from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
+from sklearn.model_selection import StratifiedKFold
+from torch.nn.modules import loss
 
 from src.model import Model
-from src.data_loading import DataModule
+from src.data_loading import DataModule, get_data, get_dicts, get_loss_weight
 
 
 def get_parser():
@@ -13,6 +14,7 @@ def get_parser():
 
     parser.add_argument('--img-dir', default='data/images', help=h)
     parser.add_argument('--labels-path', default='data/labels.json', help=h)
+    parser.add_argument('--problem', default='sea_floor', help=h)
 
     parser.add_argument('--accumulate-grad-batches', default=8, type=int, help=h)
     parser.add_argument('--batch-size', default=8, type=int, help=h)
@@ -24,6 +26,7 @@ def get_parser():
     parser.add_argument('--folds-to-train', nargs='+', default=[0, 1, 2, 3, 4], help=h)
     parser.add_argument('--kfolds', default=5, type=int, help=h)
     parser.add_argument('--kfold-seed', default=0, type=int, help=h)
+    parser.add_argument('--tta', default=1, type=int, help=h)
 
     parser.add_argument('--lr', default=1e-4, type=float, help=h)
     parser.add_argument('--lr-factor', default=0.5, type=float, help=h)
@@ -31,7 +34,8 @@ def get_parser():
     parser.add_argument('--monitor', default='val_loss', type=str, help=h)
     parser.add_argument('--from-scratch', action='store_true', help=h)
 
-    parser.add_argument('--gpus', default=1)
+    parser.add_argument('--gpus', default=1, help=h)
+    parser.add_argument('--num-workers', default=8, type=int, help=h)
 
     return parser
 
@@ -43,31 +47,38 @@ if __name__ == '__main__':
     mode = 'min' if 'loss' in args.monitor else 'max'
     assert args.kfolds >= len(args.folds_to_train)
 
-    X = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    y = [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 1], [1, 1], [1, 1], [1, 1], [1, 1]]
+    paths, labels = get_data(args.img_dir)
 
-    mskf = MultilabelStratifiedKFold(n_splits=args.kfolds, shuffle=True, random_state=args.kfold_seed)
-    for i, (train_index, test_index) in enumerate(mskf.split(X, y)):
+    n_classes = len(set(labels))
 
-        train_df = None
-        val_df = None
-
-        data_module = DataModule(
-            train_df,
-            val_df,
-            args.batch_size,
-            args.img_size
-        )
+    skf = StratifiedKFold(n_splits=args.kfolds, shuffle=True, random_state=args.kfold_seed)
+    for i, (train_index, val_index) in enumerate(skf.split(paths, labels)):
 
         print(f'\nTraining {i+1}/{args.kfolds} fold')
         if i not in args.folds_to_train:
             print('Passing')
             continue
 
-        # TODO: Add classes and weights
+        train_dicts = get_dicts(paths, labels, train_index, args.problem)
+        val_dicts = get_dicts(paths, labels, val_index, args.problem)
+
+        data_module = DataModule(
+            train_dicts,
+            val_dicts,
+            val_dicts,
+            args.batch_size,
+            args.img_size,
+            args.grayscale,
+            args.tta,
+            args.num_workers
+        )
+
+        loss_weight = get_loss_weight([labels[i] for i in train_index], args.problem)
+
         model = Model(
-            arch='mobilenetv3_large_100_miil',
-            n_classes=10, # TODO: define
+            arch=args.arch,
+            n_classes=n_classes,
+            loss_weight=loss_weight,
             lr=args.lr,
             lr_factor=args.lr_factor,
             lr_patience=args.lr_patience,
@@ -77,6 +88,7 @@ if __name__ == '__main__':
 
             # to be saved in hparams
             img_size=args.img_size,
+            grayscale=args.grayscale,
             fold=i+1
         )
 
@@ -91,8 +103,8 @@ if __name__ == '__main__':
                 pl.callbacks.ModelCheckpoint(
                     monitor=args.monitor,
                     mode=mode,
-                    filename=f'{args.arch}_fold_{i+1}_of_{args.kfolds}_' + '{epoch}_{args.monitor:.3f}'),
+                    filename=f'{args.problem}_{args.arch}_fold_{i+1}_of_{args.kfolds}_' + '{epoch}_{args.monitor:.3f}'),
             ],
         )
 
-        print(model.hparams)
+        print(model.hparams_initial)

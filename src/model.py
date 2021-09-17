@@ -7,8 +7,8 @@ class Model(pl.LightningModule):
 
     def __init__(self,
                  arch='mobilenetv3_large_100_miil',
-                 classes={'sea_floor': 3, 'elements': 4},
-                 loss_weights={'sea_floor': 1, 'elements': 1},
+                 n_classes=4,
+                 loss_weight=None,
                  lr=1e-4,
                  lr_factor=0.5,
                  lr_patience=1,
@@ -17,22 +17,14 @@ class Model(pl.LightningModule):
                  pretrained=True,
                  **kwargs):
         super().__init__()
+        self.save_hyperparameters()
 
-        self.backbone = timm.create_model(arch, pretrained=pretrained, num_classes=0)
-        self.backbone = self.backbone.eval()
+        self.model = timm.create_model(arch, pretrained=pretrained, num_classes=n_classes)
+        self.model = self.model.eval()
 
-        self.classifiers = {
-            'sea_floor': torch.nn.Linear(in_features=self.backbone.num_features, out_features=classes['sea_floor']),
-            'elements': torch.nn.Linear(in_features=self.backbone.num_features, out_features=classes['elements']),
-        }
-
-        self.loss_objects = {
-            'sea_floor': torch.nn.CrossEntropyLoss() if classes['sea_floor'] > 1 else torch.nn.MSELoss(),
-            'elements': torch.nn.BCEWithLogitsLoss() # TODO: investigate weighed multilabel loss
-        }
-
-        self.loss_weights = loss_weights
-        # TODO: add metrics
+        if loss_weight is not None:
+            loss_weight = torch.tensor(loss_weight)
+        self.loss_object = torch.nn.CrossEntropyLoss(weight=loss_weight)
 
         self.lr = lr
         self.lr_factor = lr_factor
@@ -41,21 +33,16 @@ class Model(pl.LightningModule):
         self.monitor = monitor
         self.mode = mode
 
-        self.save_hyperparameters()
 
     def forward(self, x):
-        features = self.backbone(x)
-        return {
-            'sea_floor': self.classifiers['sea_floor'](features),
-            'elements': self.classifiers['elements'](features)
-        }
+        return self.model(x)
 
     def training_step(self, batch, batch_idx):
         x, target = batch
 
         preds = self.forward(x)
 
-        loss = sum(self.loss_objects[c](preds[c], target[c]) * w for c, w in self.loss_weights.items())
+        loss = self.loss_object(preds, target)
 
         self.log('train_loss', loss, on_epoch=True, prog_bar=True, on_step=False)
         return loss
@@ -65,8 +52,7 @@ class Model(pl.LightningModule):
 
         preds = self.forward(x)
 
-        loss = sum(self.loss_objects[c](preds[c], target[c]) * w for c, w in self.loss_weights.items())
-        # TODO: Add metrics
+        loss = self.loss_object(preds, target)
 
         self.log('val_loss', loss, on_epoch=True, prog_bar=True, on_step=False)
         return loss

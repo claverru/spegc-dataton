@@ -6,7 +6,7 @@ from collections import defaultdict
 img_dir = 'data/ocean_v4_fondos'
 # img_dir = 'data/ocean_elements_v4'
 
-p = Path('data')
+p = Path(img_dir)
 
 d = defaultdict(set)
 
