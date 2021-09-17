@@ -1,4 +1,5 @@
 from pathlib import Path
+from albumentations.augmentations.transforms import HorizontalFlip, ToGray
 
 import cv2
 import torch
@@ -35,7 +36,14 @@ class Dataset(torch.utils.data.Dataset):
 
 def get_aug_transforms(img_size, grayscale):
     return A.Compose([
-        #
+        A.RandomResizedCrop(
+            img_size,
+            img_size,
+            scale=(0.75, 1.0),
+            ratio=(0.75, 1.33)
+        ),
+        A.HorizontalFlip(p=0.5),
+        A.ToGray(p=0, always_apply=grayscale),
         A.Normalize(),
         ToTensorV2()
     ])
@@ -43,8 +51,8 @@ def get_aug_transforms(img_size, grayscale):
 
 def get_basic_transforms(img_size, grayscale):
     return A.Compose([
-        ##
         A.Resize(img_size, img_size),
+        A.ToGray(p=0, always_apply=grayscale),
         A.Normalize(),
         ToTensorV2()
     ])

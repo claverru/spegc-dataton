@@ -2,7 +2,6 @@ from argparse import ArgumentParser
 
 import pytorch_lightning as pl
 from sklearn.model_selection import StratifiedKFold
-from torch.nn.modules import loss
 
 from src.model import Model
 from src.data_loading import DataModule, get_data, get_dicts, get_loss_weight
@@ -12,8 +11,7 @@ def get_parser():
     parser = ArgumentParser()
     h = '%(type)s (default: %(default)s)'
 
-    parser.add_argument('--img-dir', default='data/images', help=h)
-    parser.add_argument('--labels-path', default='data/labels.json', help=h)
+    parser.add_argument('--img-dir', default='data/images/sea_floor', help=h)
     parser.add_argument('--problem', default='sea_floor', help=h)
 
     parser.add_argument('--accumulate-grad-batches', default=8, type=int, help=h)
@@ -23,7 +21,7 @@ def get_parser():
 
     parser.add_argument('--arch', default='mobilenetv3_large_100_miil', help=h)
 
-    parser.add_argument('--folds-to-train', nargs='+', default=[0, 1, 2, 3, 4], help=h)
+    parser.add_argument('--folds-to-train', nargs='+', default=[0, 1, 2, 3, 4], type=int, help=h)
     parser.add_argument('--kfolds', default=5, type=int, help=h)
     parser.add_argument('--kfold-seed', default=0, type=int, help=h)
     parser.add_argument('--tta', default=1, type=int, help=h)
@@ -108,3 +106,5 @@ if __name__ == '__main__':
         )
 
         print(model.hparams_initial)
+
+        trainer.fit(model, data_module)
