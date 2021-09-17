@@ -4,6 +4,7 @@ import pytorch_lightning as pl
 from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 
 from src.model import Model
+from src.data_loading import DataModule
 
 
 def get_parser():
