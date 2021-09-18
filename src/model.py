@@ -88,11 +88,9 @@ class Model(pl.LightningModule):
 
 class ElementsHeatmapEnsemble(torch.nn.Module):
 
-    def __init__(self, checkpoint_paths: List[str]):
+    def __init__(self, models: List[torch.nn.Module]):
         super().__init__()
-        self.models = torch.nn.ModuleList(
-            Model.load_from_checkpoint(checkpoint_path=cp, map_location='cpu').model for cp in checkpoint_paths
-        )
+        self.models = torch.nn.ModuleList(models)
 
     def forward(self, x):
         outs = []
@@ -128,25 +126,22 @@ class ElementsHeatmapEnsemble(torch.nn.Module):
 
 class SeafloorEnsemble(torch.nn.Module):
 
-    def __init__(self, checkpoint_paths: List[str]):
+    def __init__(self, models: List[torch.nn.Module]):
         super().__init__()
-        self.models = torch.nn.ModuleList(
-            Model.load_from_checkpoint(checkpoint_path=cp, map_location='cpu').model for cp in checkpoint_paths
-        )
+        self.models = torch.nn.ModuleList(models)
 
     def forward(self, x):
         outs = [m(x) for m in self.models]
-        print(len(outs))
         return {'probas': sum(torch.softmax(out, -1) for out in outs)/len(outs)}
 
 
 class MegaEnsemble(torch.nn.Module):
 
-    def __init__(self, checkpoint_paths: Dict[str, List[str]]):
+    def __init__(self, models_dict: Dict[str, List[torch.nn.Module]]):
         super().__init__()
         self.models = torch.nn.ModuleDict({
-            'elements': ElementsHeatmapEnsemble(checkpoint_paths['elements']),
-            'sea_floor': SeafloorEnsemble(checkpoint_paths['sea_floor'])
+            'elements': ElementsHeatmapEnsemble(models_dict['elements']),
+            'sea_floor': SeafloorEnsemble(models_dict['sea_floor'])
         })
 
     def forward(self, x):
