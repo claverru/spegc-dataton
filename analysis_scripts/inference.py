@@ -2,64 +2,52 @@ import random
 from pathlib import Path
 
 import cv2
-import numpy as np
 import torch
 
 from src import utils
-from src.model import HeatMap
-from src.constants import NAME2ID, COLORS
+import albumentations as A
+from src.model import ElementsHeatMap
+from src.constants import NAME2ID
 from src.data_loading import get_basic_transforms
-
-id2name = {v: k for k, v in NAME2ID['elements'].items()}
 
 
 ckpt_dir = 'lightning_logs/resnet18'
-for ckpt_path in Path(ckpt_dir).rglob('*.ckpt'):
-    print(ckpt_path)
-    model = HeatMap(checkpoint_path=ckpt_path)
-    break
+models = [ElementsHeatMap(checkpoint_path=cp) for cp in Path(ckpt_dir).rglob('*.ckpt')]
+[m.eval() for m in models]
 
-img_size = model.hparams['img_size']
+img_size = models[0].hparams['img_size']
 
 t = get_basic_transforms(img_size=img_size, grayscale=False)
 
 paths = [str(p) for p in Path('data/images/elements').rglob('*.jpg')]
-
+paths = ['data/images/elements/fauna/d79ede96662cb0e8e22489e6be6280d8.jpg']
 
 while True:
     path = random.choice(paths)
     print(path)
     img = cv2.imread(path)[..., ::-1]
+    img = A.center_crop(img, img.shape[0], 600)
     X = t(image=img)['image'].unsqueeze(0)
 
     img = cv2.resize(img, (img_size, img_size))
 
-    with torch.no_grad():
-        out, heatmap = model(X)
+    outs = []
+    heatmaps = []
+    for m in models:
+        with torch.no_grad():
+            out, heatmap = models[0](X)
+            outs.append(out)
+            heatmaps.append(heatmap)
 
-    out = out.squeeze(0)
-    heatmap = heatmap.squeeze(0)
+    heatmaps = sum(heatmaps)/len(heatmaps)
+    outs = sum(outs)/len(outs)
 
-    pos_classes = [i.numpy().item() for i in torch.where(torch.sigmoid(out) > 0.5)[0]]
+    outs = outs.squeeze(0)
+    heatmaps = heatmaps.squeeze(0)
 
-    out = out.numpy()
-    heatmap = heatmap.numpy()
+    outs = outs.numpy()
+    heatmaps = heatmaps.numpy()
 
-    binary_masks = np.stack([heatmap[c] for c in pos_classes], 0)
+    utils.plot_grid(img, list(NAME2ID['elements']), outs, heatmaps)
 
-    for i, bn in enumerate(binary_masks):
-        me = bn.mean()
-        ma = bn.max()
-        st = bn.std()
-        print(bn.min(), ma, me, st)
-        bn[(bn < me + st*2)] = 0
-        bn /= ma
-        binary_masks[i] = bn
-
-    colors = [COLORS['elements'][id2name[c]] for c in pos_classes]
-    result = utils.add_heatmap(img, binary_masks[0], colors[0])
-    print(img.shape, img.dtype, result.shape, result.dtype)
-
-    result = cv2.hconcat([img, result])[..., ::-1]
-    cv2.imwrite('trash/test.png', result)
-    input()
+    input('Input a key to next prediction.')

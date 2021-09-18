@@ -4,6 +4,7 @@ from collections import defaultdict
 
 from src.constants import NAME2ID
 
+
 # img_dir = 'data/images/sea_floor'
 img_dir = 'data/images/elements'
 
@@ -22,4 +23,4 @@ for k1, k2 in combinations(d, 2):
     inter = d[k1].intersection(d[k2])
     print(k1, k2, len(inter))
     for repeated in inter:
-        print(f'\t{path}')
+        print(f'\t{repeated}')

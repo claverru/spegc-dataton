@@ -1,26 +1,26 @@
-import numpy as np
+import matplotlib.pyplot as plt
 
 
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
+def plot_grid(img, labels, probas, heatmaps, out_path='plots/grid.png'):
 
+    plt.clf()
 
-def add_heatmap(img, pred, color, alpha=0.3, grayscale=True):
-    if grayscale:
-        multiplier = np.array([0.1140, 0.5870, 0.2989])[None, None, :]
-        img = (img * multiplier).sum(-1, keepdims=True)
-    red_pred = pred[..., None] * np.array(color)
-    # blue_pred = (pred >= 0.5)[..., None] * np.array([0, 0, 255])
+    _, ax = plt.subplots(nrows=2, ncols=3, figsize=(20, 10))
 
-    # blue_img = np.where(
-    #     blue_pred.any(-1, keepdims=True),
-    #     (1 - alpha) * img + alpha * blue_pred,
-    #     img
-    # ).astype(np.float32)
-    red_img = np.where(
-        red_pred.any(-1, keepdims=True),
-        (1 - alpha) * img + alpha * red_pred,
-        img
-    ).astype(np.uint8)
+    ax[0, 0].imshow(img)
+    ax[0, 0].set_title('Original Image')
+    ax[0, 0].axis('off')
 
-    return red_img
+    for i, (label, heatmap, p) in enumerate(zip(labels, heatmaps, probas), start=1):
+
+        row = i // 3
+        col = i % 3
+
+        ax[row, col].imshow(img, alpha=0.5)
+        ax[row, col].axis('off')
+        ax[row, col].set_title(label)
+
+        if p > 0.5:
+            ax[row, col].imshow(heatmap, cmap='jet', alpha=0.5)
+
+    plt.savefig(out_path)

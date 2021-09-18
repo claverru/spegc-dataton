@@ -1,3 +1,5 @@
+from typing import List
+
 import timm
 import torch
 import torchmetrics
@@ -84,14 +86,13 @@ class Model(pl.LightningModule):
         }
 
 
-class HeatMap(torch.nn.Module):
+class ElementsHeatMap(torch.nn.Module):
 
     def __init__(self, checkpoint_path):
         super().__init__()
         pl_model = Model.load_from_checkpoint(checkpoint_path=checkpoint_path, map_location='cpu')
         self.hparams = pl_model.hparams
         self.model = pl_model.model
-        self.model.eval()
         self.last_weights = next(self.model.fc.parameters()).clone().detach()
 
     def forward(self, x):
@@ -103,10 +104,9 @@ class HeatMap(torch.nn.Module):
             features,
             size=x.shape[-2:],
             mode='bilinear',
-            align_corners=False
+            align_corners=True
         )
-        """
-        Dimensions:
+        """ Dimensions:
             - c: classes
             - f: features
             - b: batch
@@ -115,4 +115,32 @@ class HeatMap(torch.nn.Module):
         """
         heatmap = torch.einsum('cf, bfwh -> bcwh', self.last_weights, inter_features)
 
-        return out, heatmap
+        return {'probas': torch.sigmoid(out), 'heatmap': heatmap}
+
+
+class Seafloor(torch.nn.Module):
+
+    def __init__(self, checkpoint_path):
+        super().__init__()
+        pl_model = Model.load_from_checkpoint(checkpoint_path=checkpoint_path, map_location='cpu')
+        self.hparams = pl_model.hparams
+        self.model = pl_model.model
+
+    def forward(self, x):
+        out = self.model(x)
+        return {'probas': torch.softmax(out, -1)}
+
+
+class MegaEnsemble(torch.nn.Module):
+
+    def __init__(self, checkpoint_paths: dict[List]):
+        super().__init__()
+        self.models = torch.nn.ModuleDict({
+            'elements': torch.nn.ModuleList(ElementsHeatMap(p) for p in checkpoint_paths['elements']),
+            'sea_floor': torch.nn.ModuleList(Seafloor(p) for p in checkpoint_paths['sea_floor'])
+        })
+
+    def forward(self, x):
+        return {
+            k:
+        }

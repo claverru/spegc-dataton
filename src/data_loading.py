@@ -1,6 +1,5 @@
-from collections import defaultdict
 from pathlib import Path
-from albumentations.augmentations.transforms import HorizontalFlip, ToGray
+from collections import defaultdict
 
 import cv2
 import torch
