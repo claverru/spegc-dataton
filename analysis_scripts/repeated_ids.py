@@ -1,26 +1,34 @@
 from pathlib import Path
 from itertools import combinations
+from argparse import ArgumentParser
 from collections import defaultdict
 
 from src.constants import NAME2ID
 
 
-# img_dir = 'data/images/sea_floor'
-img_dir = 'data/images/elements'
+def get_parser():
+    parser = ArgumentParser()
+    h = '%(type)s (default: %(default)s)'
+    parser.add_argument('--img-dir', default='data/images/elements', type=str, help=h)
+    return parser
 
-problem = img_dir.split('/')[-1]
 
-p = Path(img_dir)
+if __name__ == '__main__':
 
-d = defaultdict(set)
+    args = get_parser().parse_args()
 
-for path in p.rglob('*.jpg'):
-    d[path.parent.name].add(path.name)
+    p = Path(args.img_dir)
+    problem = p.name
 
-print({k: len(d[k]) for k in NAME2ID[problem]})
+    d = defaultdict(set)
 
-for k1, k2 in combinations(d, 2):
-    inter = d[k1].intersection(d[k2])
-    print(k1, k2, len(inter))
-    for repeated in inter:
-        print(f'\t{repeated}')
+    for path in p.rglob('*.jpg'):
+        d[path.parent.name].add(path.name)
+
+    print({k: len(d[k]) for k in NAME2ID[problem]})
+
+    for k1, k2 in combinations(d, 2):
+        inter = d[k1].intersection(d[k2])
+        print(k1, k2, len(inter))
+        for repeated in inter:
+            print(f'\t{repeated}')
