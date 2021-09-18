@@ -85,6 +85,10 @@ class Model(pl.LightningModule):
             'monitor': self.monitor
         }
 
+    @classmethod
+    def load_model(cls, checkpoint_path):
+        return cls.load_from_checkpoint(checkpoint_path=checkpoint_path, map_location='cpu').model
+
 
 class ElementsHeatmapEnsemble(torch.nn.Module):
 

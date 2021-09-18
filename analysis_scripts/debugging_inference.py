@@ -6,6 +6,7 @@ import cv2
 import torch
 
 from src import utils
+from src.model import Model
 import albumentations as A
 from src.model import MegaEnsemble
 from src.constants import NAME2ID
@@ -34,8 +35,8 @@ if __name__ == '__main__':
     sea_floor_id_to_name = {v: k for k, v in NAME2ID['sea_floor'].items()}
 
     model = MegaEnsemble({
-        'elements': [utils.load_model(cp) for cp in Path(args.elements_ckpt_dir).rglob('*.ckpt')],
-        'sea_floor': [utils.load_model(cp) for cp in Path(args.sea_floor_ckpt_dir).rglob('*.ckpt')]
+        'elements': [Model.load_model(cp) for cp in Path(args.elements_ckpt_dir).rglob('*.ckpt')],
+        'sea_floor': [Model.load_model(cp) for cp in Path(args.sea_floor_ckpt_dir).rglob('*.ckpt')]
     })
     model.eval()
 

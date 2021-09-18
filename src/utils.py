@@ -1,7 +1,5 @@
 import matplotlib.pyplot as plt
 
-from src.model import Model
-
 
 def plot_grid(img, labels, probas, heatmaps, sea_floor_label, out_path='plots/grid.png'):
 
@@ -28,7 +26,3 @@ def plot_grid(img, labels, probas, heatmaps, sea_floor_label, out_path='plots/gr
     fig.suptitle(sea_floor_label)
 
     plt.savefig(out_path)
-
-
-def load_model(checkpoint_path):
-    return Model.load_from_checkpoint(checkpoint_path=checkpoint_path, map_location='cpu').model
