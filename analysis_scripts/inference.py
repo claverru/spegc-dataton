@@ -6,21 +6,27 @@ import torch
 
 from src import utils
 import albumentations as A
-from src.model import ElementsHeatMap
+from src.model import MegaEnsemble
 from src.constants import NAME2ID
 from src.data_loading import get_basic_transforms
 
+IMG_SIZE = 512
 
-ckpt_dir = 'lightning_logs/resnet18'
-models = [ElementsHeatMap(checkpoint_path=cp) for cp in Path(ckpt_dir).rglob('*.ckpt')]
-[m.eval() for m in models]
 
-img_size = models[0].hparams['img_size']
+elements_ckpt_dir = 'lightning_logs/resnet18/elements'
+sea_floor_ckpt_dir = 'lightning_logs/mobilenet/sea_floor'
 
-t = get_basic_transforms(img_size=img_size, grayscale=False)
 
-paths = [str(p) for p in Path('data/images/elements').rglob('*.jpg')]
-paths = ['data/images/elements/fauna/d79ede96662cb0e8e22489e6be6280d8.jpg']
+model = MegaEnsemble({
+    'elements': [str(cp) for cp in Path(elements_ckpt_dir).rglob('*.ckpt')],
+    'sea_floor': [str(cp) for cp in Path(sea_floor_ckpt_dir).rglob('*.ckpt')]
+})
+model.eval()
+
+t = get_basic_transforms(img_size=512, grayscale=False)
+
+paths = [str(p) for p in Path('data/images').rglob('*.jpg')]
+
 
 while True:
     path = random.choice(paths)
@@ -29,21 +35,13 @@ while True:
     img = A.center_crop(img, img.shape[0], 600)
     X = t(image=img)['image'].unsqueeze(0)
 
-    img = cv2.resize(img, (img_size, img_size))
+    img = cv2.resize(img, (IMG_SIZE, IMG_SIZE))
 
-    outs = []
-    heatmaps = []
-    for m in models:
-        with torch.no_grad():
-            out, heatmap = models[0](X)
-            outs.append(out)
-            heatmaps.append(heatmap)
+    with torch.no_grad():
+        preds = model(X)
 
-    heatmaps = sum(heatmaps)/len(heatmaps)
-    outs = sum(outs)/len(outs)
-
-    outs = outs.squeeze(0)
-    heatmaps = heatmaps.squeeze(0)
+    outs = preds['elements']['probas'].squeeze(0)
+    heatmaps = preds['elements']['heatmap'].squeeze(0)
 
     outs = outs.numpy()
     heatmaps = heatmaps.numpy()

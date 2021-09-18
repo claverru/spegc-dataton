@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 
 import timm
 import torch
@@ -86,59 +86,68 @@ class Model(pl.LightningModule):
         }
 
 
-class ElementsHeatMap(torch.nn.Module):
+class ElementsHeatmapEnsemble(torch.nn.Module):
 
-    def __init__(self, checkpoint_path):
+    def __init__(self, checkpoint_paths: List[str]):
         super().__init__()
-        pl_model = Model.load_from_checkpoint(checkpoint_path=checkpoint_path, map_location='cpu')
-        self.hparams = pl_model.hparams
-        self.model = pl_model.model
-        self.last_weights = next(self.model.fc.parameters()).clone().detach()
-
-    def forward(self, x):
-        features = self.model.forward_features(x)
-        pooled = self.model.global_pool(features)
-        out = self.model.fc(pooled)
-
-        inter_features = torch.nn.functional.interpolate(
-            features,
-            size=x.shape[-2:],
-            mode='bilinear',
-            align_corners=True
+        self.models = torch.nn.ModuleList(
+            Model.load_from_checkpoint(checkpoint_path=cp, map_location='cpu').model for cp in checkpoint_paths
         )
-        """ Dimensions:
-            - c: classes
-            - f: features
-            - b: batch
-            - w: width
-            - h: height
-        """
-        heatmap = torch.einsum('cf, bfwh -> bcwh', self.last_weights, inter_features)
-
-        return {'probas': torch.sigmoid(out), 'heatmap': heatmap}
-
-
-class Seafloor(torch.nn.Module):
-
-    def __init__(self, checkpoint_path):
-        super().__init__()
-        pl_model = Model.load_from_checkpoint(checkpoint_path=checkpoint_path, map_location='cpu')
-        self.hparams = pl_model.hparams
-        self.model = pl_model.model
 
     def forward(self, x):
-        out = self.model(x)
-        return {'probas': torch.softmax(out, -1)}
+        outs = []
+        heatmaps = []
+        for m in self.models:
+            features = m.forward_features(x)
+            pooled = m.global_pool(features)
+            out = m.fc(pooled)
+
+            inter_features = torch.nn.functional.interpolate(
+                features,
+                size=x.shape[-2:],
+                mode='bilinear',
+                align_corners=True
+            )
+            """ Dimensions:
+                - c: classes
+                - f: features
+                - b: batch
+                - w: width
+                - h: height
+            """
+            heatmap = torch.einsum('cf, bfwh -> bcwh', m.fc.weight, inter_features)
+
+            outs.append(out)
+            heatmaps.append(heatmap)
+
+        return {
+            'probas': sum(torch.sigmoid(out) for out in outs)/len(outs),
+            'heatmap': sum(heatmap)/len(heatmaps)
+        }
+
+
+class SeafloorEnsemble(torch.nn.Module):
+
+    def __init__(self, checkpoint_paths: List[str]):
+        super().__init__()
+        self.models = torch.nn.ModuleList(
+            Model.load_from_checkpoint(checkpoint_path=cp, map_location='cpu').model for cp in checkpoint_paths
+        )
+
+    def forward(self, x):
+        outs = [m(x) for m in self.models]
+        print(len(outs))
+        return {'probas': sum(torch.softmax(out, -1) for out in outs)/len(outs)}
 
 
 class MegaEnsemble(torch.nn.Module):
 
-    def __init__(self, checkpoint_paths: dict[List]):
+    def __init__(self, checkpoint_paths: Dict[str, List[str]]):
         super().__init__()
         self.models = torch.nn.ModuleDict({
-            'elements': torch.nn.ModuleList(ElementsHeatMap(p) for p in checkpoint_paths['elements']),
-            'sea_floor': torch.nn.ModuleList(Seafloor(p) for p in checkpoint_paths['sea_floor'])
+            'elements': ElementsHeatmapEnsemble(checkpoint_paths['elements']),
+            'sea_floor': SeafloorEnsemble(checkpoint_paths['sea_floor'])
         })
 
     def forward(self, x):
-        pass
+        return {problem: m(x) for problem, m in self.models.items()}
