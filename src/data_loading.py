@@ -34,7 +34,7 @@ class Dataset(torch.utils.data.Dataset):
         return img, target
 
 
-def get_aug_transforms(img_size, grayscale):
+def get_aug_transforms(img_size, grayscale=False):
     return A.Compose([
         A.Rotate(limit=20, p=0.5),
         A.RandomResizedCrop(
@@ -51,7 +51,7 @@ def get_aug_transforms(img_size, grayscale):
     ])
 
 
-def get_basic_transforms(img_size, grayscale):
+def get_basic_transforms(img_size, grayscale=False):
     return A.Compose([
         A.Resize(img_size, img_size),
         A.ToGray(p=0, always_apply=grayscale),
