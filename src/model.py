@@ -82,3 +82,37 @@ class Model(pl.LightningModule):
                 verbose=True),
             'monitor': self.monitor
         }
+
+
+class HeatMap(torch.nn.Module):
+
+    def __init__(self, checkpoint_path):
+        super().__init__()
+        pl_model = Model.load_from_checkpoint(checkpoint_path=checkpoint_path, map_location='cpu')
+        self.hparams = pl_model.hparams
+        self.model = pl_model.model
+        self.model.eval()
+        self.last_weights = next(self.model.fc.parameters()).clone().detach()
+
+    def forward(self, x):
+        features = self.model.forward_features(x)
+        pooled = self.model.global_pool(features)
+        out = self.model.fc(pooled)
+
+        inter_features = torch.nn.functional.interpolate(
+            features,
+            size=x.shape[-2:],
+            mode='bilinear',
+            align_corners=False
+        )
+        """
+        Dimensions:
+            - c: classes
+            - f: features
+            - b: batch
+            - w: width
+            - h: height
+        """
+        heatmap = torch.einsum('cf, bfwh -> bcwh', self.last_weights, inter_features)
+
+        return out, heatmap
