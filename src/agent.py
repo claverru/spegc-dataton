@@ -1,4 +1,3 @@
-import enum
 from typing import Dict, List
 
 import clip
@@ -46,7 +45,6 @@ class MegaEnsembleAgent(object):
         preds['sea_floor']['proba'] = preds['sea_floor']['probas'].max().round(2)
 
         return preds
-
 
 
 class ClipAgent(object):

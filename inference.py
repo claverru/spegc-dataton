@@ -44,7 +44,7 @@ if __name__ == '__main__':
             'sea_floor': [cp for cp in Path(args.sea_floor_ckpt_dir).rglob('*.ckpt')]
         },
         img_size=args.img_size,
-        device = device
+        device=device
     )
 
     clip_agent = ClipAgent(args.fauna_classes, args.fauna_model, device=device)

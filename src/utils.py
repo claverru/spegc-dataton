@@ -28,7 +28,7 @@ def plot_grid(img,
 
         ax[col].imshow(img, alpha=0.5)
         ax[col].axis('off')
-        ax[col].set_title(f'{label} ({p:.2f})' )
+        ax[col].set_title(f'{label} ({p:.2f})')
         ax[col].imshow(heatmap, cmap='jet', alpha=0.5)
 
     fig.suptitle(f'{sea_floor_label} ({sea_floor_proba:.2f})')
