@@ -14,6 +14,7 @@ NAME2ID = {
     }
 }
 
+FAUNA_CLASSES = ['fish', 'coral reef', 'coral reef and fish']
 
 def checkpoint_name(problem, arch, epoch, kfolds, monitor):
     return f'{problem}_{arch}_fold_{epoch}_of_{kfolds}_' + '{epoch}_{' + monitor + ':.3f}'

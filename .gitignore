@@ -131,6 +131,6 @@ dmypy.json
 # own
 lightning_logs
 data
-models
-# yolov5
 trash
+grid.png
+*.zip

@@ -4,6 +4,7 @@ RUN apt-get update && apt-get install -y libgl1-mesa-glx libglib2.0-0 git
 
 RUN pip install pytorch-lightning albumentations
 RUN pip install pandas timm iterative-stratification
+RUN pip install git+https://github.com/openai/CLIP.git
 
 WORKDIR /workspaces
 

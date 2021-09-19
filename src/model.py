@@ -124,7 +124,7 @@ class ElementsHeatmapEnsemble(torch.nn.Module):
 
         return {
             'probas': sum(torch.sigmoid(out) for out in outs)/len(outs),
-            'heatmap': sum(heatmap)/len(heatmaps)
+            'heatmaps': sum(heatmap)/len(heatmaps)
         }
 
 
